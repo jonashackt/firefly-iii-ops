@@ -12,3 +12,10 @@ There are also other alternatives (see https://github.com/awesome-selfhosted/awe
 
 https://docs.firefly-iii.org/how-to/data-importer/installation/docker/
 
+Download the docker-compose.yml and `.env` files as described. Also change the db passwords and importer url values.
+
+Then run the compose install via:
+
+```shell
+docker compose -f docker-compose.yml up -d --pull=always
+```
