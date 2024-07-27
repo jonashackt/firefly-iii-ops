@@ -61,5 +61,12 @@ It was when I found out about the [Asus Expertcenter PN42](https://www.techstage
 
 
 
+# Links
+
+https://www.notebookcheck.com/Bosgame-Mini-PC-im-Test-Preiswerter-Kleinst-PC-mit-Intel-N95-fuer-den-Office-Alltag.727669.0.html
+
+https://www.notebookcheck.net/Review-The-Asus-ExpertCenter-PN42-barebone-has-been-given-a-frugal-Intel-N200-and-DDR4-RAM.790005.0.html 
+
+https://www.notebookcheck.net/Acemagic-S1-mini-PC-review-A-small-and-economical-office-PC-with-an-Intel-N95-1-TB-of-mass-storage-and-a-display.767513.0.html
 
 
