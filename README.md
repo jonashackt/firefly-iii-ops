@@ -57,6 +57,19 @@ Now access firefly iii can be found at http://localhost:4000
 
 
 
+## Accessing your local networks Firefly III from an Firefly supporting App
+
+There are mutliple Apps that are able to use the Firefly API https://docs.firefly-iii.org/references/firefly-iii/third-parties/apps/
+
+Especially the Abacus App https://github.com/victorbalssa/abacus (available for Android AND iPhone) looks really promising and is easy to configure to use your Firefly III installation.
+
+Download the App from your Appstore and configure your local network's firefly url. Then log in using OAuth client token, provided by firefly at http://localhost:4000/profile
+
+
+## Make your homeserver available on the internet (for later app access)
+
+
+
 
 # Find a suitable homeserver
 
