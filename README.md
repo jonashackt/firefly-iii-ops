@@ -23,6 +23,40 @@ Then run the compose install via:
 docker compose -f docker-compose.yml up -d --pull=always
 ```
 
+Now access firefly iii on http://localhost
+
+
+
+## Open port on your server
+
+See https://www.digitalocean.com/community/tutorials/opening-a-port-on-linux
+
+If you have an `ufw` based firewall (like on Manjaro), simply run
+
+```shell
+sudo ufw allow 4000
+```
+
+Which also sustains reboots without further work.
+
+If you choose the port `4000`, be sure to also change the `services:app:port` in the `docker-compose.yml` :
+
+```yaml
+services:
+  app:
+    image: fireflyiii/core:latest
+    ...
+    ports:
+      - '4000:8080'
+    ...
+```
+
+Run `docker-compose down` and `up` again.
+
+Now access firefly iii can be found at http://localhost:4000
+
+
+
 
 # Find a suitable homeserver
 
@@ -60,6 +94,31 @@ The c't video described [a AliExpress fanless mini pc based on the Intel N100](h
 So I searched for different machines with Intel N100. I found [this box from Zotac](https://www.mindfactory.de/product_info.php/Zotac-ZBOX-CI337NANO-N100-Intel-DDR5-HDMI-DP-passiv_1515007.html), which sadly had mixed reviews. The [Zotac Zbox Edge CI343](https://www.heise.de/tests/Luefterloser-Mini-PC-im-Test-Zotac-Zbox-Edge-CI343-mit-Intel-N100-9584768.html?seite=all) was also a hot candidate, but I didn't find a free review. There was [the Blackview MP80]([https://www.techstage.de/test/guenstiger-mini-pc-bietet-erstaunlich-viel-t-bao-n100-fuer-165-euro-im-test/8pdzclb](https://www.techstage.de/test/klein-praktisch-gut-mini-pc-blackview-mp80-fuer-200-euro-ueberrascht-im-test/eslw67h)), which should be not loud - but still has a fan running. I found [the Minix Z100](https://www.techstage.de/test/passiv-gekuehlter-mini-pc-minix-z100-im-test-lautlos-durchdacht-und-gut-fuer-259-euro/31s7gee) to make for a really great package, if you're okay with a maximum of 8/16GB of RAM + 256/512GB of SSD - or with throwing both out and inserting more, which would have blasted my budget of 380€ max.
 
 It was when I found out about the [Asus Expertcenter PN42](https://www.techstage.de/test/luefterloser-mini-pc-mit-geringem-stromverbrauch-im-test-asus-expertcenter-pn42/m517x1s), which seemed to be a completely silent N100 powered mini pc with low Watts consumption. It is also build for 24/7 operation [according to the companies website](https://www.asus.com/de/displays-desktops/mini-pcs/pn-series/asus-expertcenter-pn42/), which is my intended use case. And - using the Crucial website - I found out that [the Asus box can handle 32GB of RAM](https://www.crucial.de/compatible-upgrade-for/asus/asus-expertcenter-pn42-(n100-n200)), although not officially supported (overRAMing). So I finally ordered the Asus Expertcenter PN42 bare bone (205€) together with Crucial 32GB DDR4-3200 CL22 RAM (56€) and a Crucial P3 Plus SSD 2TB M.2 2280 PCIe Gen4 NVMe (109€). This made for a total of 370€, which was exactly in my budget. Let's see how this thing will run, when all parts arrived and I build them up.
+
+
+
+# Find a suitable Linux distro
+
+My homeserver hardware has arrived and I now wanted to install my Manjaro distro I'm already used to. But wait: Aren't there more practical distros for a server?
+
+Let's have a look onto my requirements:
+
+* Want to host a Kubernetes cluster: All in all I'm a DevOps guy and don't have my own K8s running (except from Cloud resources)? This needs to be changed! So the distro should support K8s as a first class citizen
+* Minimal configuration overhead and maybe even configurable without an extra display, keyboard and mouse
+* Ease update process and wide variety of packages (I really love my desktop Manjaro for exactly that reason!).
+
+
+## Let's have a look at specialized container OSses
+
+https://www.spectrocloud.com/blog/k3os-alternatives-the-best-container-os-for-edge-kubernetes
+
+CoreOS and K3OS seem to be dead, Bottlerocket by Amazon is more or less limited to the AWS services and isn't that easy to install on bare-metal.
+
+There seems to be https://www.talos.dev - which is supported by the CNCF. It supports bare-metal/edge and removes all SSH and console access in favor of API management.
+
+But Talos is also immutable, which is great for beeing used as a base for Kubernetes - but don't we also want to run some home theater software also on our home server? Plex or the like... Hmm, and this will make the need for an X-Server (or Wayland)... 
+
+Maybe [I simply start with Manjaro (as my most comfortalbe distro) for the moment](https://www.reddit.com/r/kubernetes/comments/qvvq7a/what_is_the_best_linux_os_to_deploy_kubernetes/) - and switch to a specialized Container OS later.
 
 
 
