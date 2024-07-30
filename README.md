@@ -11,6 +11,8 @@ There are also other alternatives (see https://github.com/awesome-selfhosted/awe
 
 ## Install Firefly III with Docker
 
+> Be sure to have Docker installed, e.g. [I described it here, how to do it on Manjaro](https://github.com/jonashackt/mac-to-linux?tab=readme-ov-file#docker) 
+
 https://docs.firefly-iii.org/how-to/data-importer/installation/docker/
 
 Download the docker-compose.yml and `.env` files as described. Also change the db passwords and importer url values.
