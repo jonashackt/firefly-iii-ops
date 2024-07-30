@@ -68,6 +68,11 @@ Download the App from your Appstore and configure your local network's firefly u
 
 ## Make your homeserver available on the internet (for later app access)
 
+There are multiple possibilities to make your homeserver accessible on the internet. See https://www.reddit.com/r/synology/ for example.
+
+They discuss VPN, reverse proxy, https://tailscale.com or simply DynDNS. I'd like to try the latter.
+
+https://avm.de/service/wissensdatenbank/dok/FRITZ-Box-7530/30_Dynamic-DNS-in-FRITZ-Box-einrichten/
 
 
 
