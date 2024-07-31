@@ -68,7 +68,7 @@ Download the App from your Appstore and configure your local network's firefly u
 
 ## Make your homeserver available on the internet (for later app access)
 
-There are multiple possibilities to make your homeserver accessible on the internet. See https://www.reddit.com/r/synology/ for example.
+There are multiple possibilities to make your homeserver accessible on the internet. See [this subreddit](https://www.reddit.com/r/synology/comments/otczia/is_there_an_actual_safe_way_to_access_my_nas_from/) for example.
 
 They discuss VPN, reverse proxy, DynDNS or https://tailscale.com. I'd like to try the latter.
 
@@ -99,7 +99,21 @@ sudo tailscale up
 
 Now use the link to authenticate your machine to your tailnet. That's it.
 
+
+### Connect your (mobile) devices
+
 To connect mobile devices, get the app from the app store and login via your IDP. Your mobile has automatically joined your tailnet.
+
+By default tailscale MagicDNS is configured already. So if you add a machine having a hostname `myhomelab`, then all you need to access this machine is http://myhomelab! Pretty cool eh?!
+
+
+### Share your homeserver (or your full tailscale tailnet) with the other Firefly III users
+
+> First you should create a `fun` DNS name for your tailnet. This can be done [in the `DNS` settings as described here](https://tailscale.com/kb/1217/tailnet-name#creating-a-fun-tailnet-name). With this you have a memorable url name rather than just a random number.ts.net
+
+If it's your wife, you might just want here to join your tailnet anyways. If it's your kid, you might restrict access of devices a bit more. 
+
+To do the first, head over to https://login.tailscale.com/admin/users and click on `Invite external users` in the Invite users tab. Now share the link using mail or the link directly.
 
 
 
