@@ -75,6 +75,34 @@ They discuss VPN, reverse proxy, DynDNS or https://tailscale.com. I'd like to tr
 Which reads extremely great for me: https://tailscale.com/blog/how-tailscale-works & https://tailscale.com/blog/how-nat-traversal-works
 
 
+### Install tailscale on Manjaro
+
+https://tailscale.com/download/linux
+
+Install the official client:
+
+```shell
+pamac install tailscale
+```
+
+Start the `tailscaled` daemon as a system service:
+
+```shell
+sudo systemctl start tailscaled
+```
+
+Connect your server to tailscale.com
+
+```shell
+sudo tailscale up
+```
+
+Now use the link to authenticate your machine to your tailnet. That's it.
+
+To connect mobile devices, get the app from the app store and login via your IDP. Your mobile has automatically joined your tailnet.
+
+
+
 
 
 # Find a suitable homeserver
