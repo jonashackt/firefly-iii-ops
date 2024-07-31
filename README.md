@@ -117,6 +117,11 @@ If it's your wife, you might just want here to join your tailnet anyways. If it'
 
 To do the first, head over to https://login.tailscale.com/admin/users and click on `Invite external users` in the Invite users tab. Now share the link using mail or the link directly.
 
+#### When your wife can't see your devices (only her's)
+
+You need to reauthenticate via `Sign in with other` and not with the button `sign in with google`, but using your wife'S google adress. See https://www.reddit.com/r/Tailscale/comments/15iornp/comment/k4terws/
+
+
 
 ## Backup Firefly III
 
