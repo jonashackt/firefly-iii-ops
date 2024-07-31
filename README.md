@@ -118,5 +118,7 @@ If it's your wife, you might just want here to join your tailnet anyways. If it'
 To do the first, head over to https://login.tailscale.com/admin/users and click on `Invite external users` in the Invite users tab. Now share the link using mail or the link directly.
 
 
+## Backup Firefly III
 
+https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/ & https://github.com/firefly-iii/firefly-iii/issues/4270
 
