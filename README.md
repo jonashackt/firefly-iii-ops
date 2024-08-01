@@ -93,6 +93,12 @@ Start the `tailscaled` daemon as a system service:
 sudo systemctl start tailscaled
 ```
 
+> To have tailscale start up with your homeserver booting, be sure to enable the systemctl service via
+
+```shell
+sudo systemctl enable tailscaled
+```
+
 Connect your server to tailscale.com
 
 ```shell
