@@ -11,7 +11,7 @@ There are also other alternatives (see https://github.com/awesome-selfhosted/awe
 > If you need some hints on how to find a suitable homeserver, have a look at this https://github.com/jonashackt/homeserver
 
 
-## Install Firefly III with Docker
+# Install Firefly III with Docker
 
 > Be sure to have Docker installed, e.g. [I described it here, how to do it on Manjaro](https://github.com/jonashackt/mac-to-linux?tab=readme-ov-file#docker) 
 
@@ -129,7 +129,7 @@ You need to reauthenticate via `Sign in with other` and not with the button `sig
 
 
 
-## Backup Firefly III
+# Backup Firefly III
 
 https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/ & https://github.com/firefly-iii/firefly-iii/issues/4270
 
@@ -160,7 +160,42 @@ It should print something like this:
 ```
 
 
-### Automatically Backup to Cloud Provider using cron & Google Drive
+## Automatically Backup to Cloud Provider using cron & Google Drive
 
 Backing up your database is great, but you should also place the backups on another machine to mitigate hardware failure. 
+
+If you want to use your Google Drive, you can use [this description here to connect your Gnome Desktop to your Drive](https://github.com/jonashackt/mac-to-linux/blob/main/README.md#google-drive-desktop-file-sync).
+
+
+### Encrypting the `.tar` with openssl
+
+But before syncing our backup with a Google Drive, we should encrypt it, right. Otherwise the whole homeserver thingy wouldn't make any sense. The simplest idea was to encrypt the already tared `.tar`. There are [several possibilities on how to encrypt our a `.tar` file](https://stackoverflow.com/questions/57817073/how-to-encrypt-after-creating-tar-archive), I chose `openssl` here:
+
+```shell
+openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass pass:mypassword -in 2024-08-06.tar -out 2024-08-06.tar.openssl
+```
+
+This will also omit the warning `*** WARNING : deprecated key derivation used. Using -iter or -pbkdf2 would be better.` [as described here](https://unix.stackexchange.com/a/507132/140406).
+
+Unecryption is possible adding the `-d` parameter to the command:
+
+```shell
+openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass pass:mypassword -in 2024-08-06.tar -out 2024-08-06.tar.openssl
+```
+
+> Only be sure to have the `-salt` parameter added also, since otherwise I ran into the infamous `"error reading input file" and "bad magic number"` errors.
+
+We also need to have an unintended execution of the `openssl` command in place, since we want to execute it from within a cron job later. Therefore we use the `pass file:myfile.txt` parameter instead like this:
+
+```shell
+# Create password file & insert your password
+nano fireflybackup.txt
+
+# encrypt
+openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in 2024-08-06.tar -out 2024-08-06.tar.openssl
+
+# decrypt
+openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in 2024-08-06.tar.openssl -out 2024-08-06-decrypted.tar
+```
+
 
