@@ -133,3 +133,34 @@ You need to reauthenticate via `Sign in with other` and not with the button `sig
 
 https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/ & https://github.com/firefly-iii/firefly-iii/issues/4270
 
+There's a backup script [which can be downloaded as GitHub gist](https://gist.github.com/dawid-czarnecki/8fa3420531f88b2b2631250854e23381). Download it to the folder where your `docker-compose.yml` and `.env` files reside and enable it's execution:
+
+```shell
+chmod +x firefly-iii-backuper.sh
+```
+
+First try to execute the script from your firefly dir and create a example backup:
+
+```shell
+./firefly-iii-backuper.sh backup $(date '+%F').tar
+```
+
+You can extract the `.tar` and have a look into it. It should contain the `docker-compose.yml`, versions and especially the `firefly_db.sql` file. In order to verify everything went correctly, try to restore the backup immediately after the backup ran:
+
+```shell
+./firefly-iii-backuper.sh restore 2024-08-06.tar
+```
+
+It should print something like this:
+
+```shell
+[INFO]  Restoring the following files: .db.env .importer.env docker-compose.yml
+[WARNING]  The upload volume exists. Overwriting.
+[INFO]  Restoring database
+```
+
+
+### Automatically Backup to Cloud Provider using cron & Google Drive
+
+Backing up your database is great, but you should also place the backups on another machine to mitigate hardware failure. 
+
