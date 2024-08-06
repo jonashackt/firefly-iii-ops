@@ -139,6 +139,20 @@ There's a backup script [which can be downloaded as GitHub gist](https://gist.gi
 chmod +x firefly-iii-backuper.sh
 ```
 
+> I got the warning `[WARNING]  The following files were not found in /home/homepike/firefly: .*.env. Skipping.
+`
+> To add the `.env` files all correctly to the `.tar`, I changed the third line of the script as follows:
+
+```shell
+# From
+files_to_backup=(.*.env docker-compose.yml )
+
+# to this
+files_to_backup=(.env .db.env .importer.env docker-compose.yml )
+```
+
+Now all files got correctly backuped.
+
 First try to execute the script from your firefly dir and create a example backup:
 
 ```shell
