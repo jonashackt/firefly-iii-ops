@@ -142,13 +142,13 @@ chmod +x firefly-iii-backuper.sh
 First try to execute the script from your firefly dir and create a example backup:
 
 ```shell
-./firefly-iii-backuper.sh backup $(date '+%F').tar
+bash firefly-iii-backuper.sh backup $(date '+%F').tar
 ```
 
 You can extract the `.tar` and have a look into it. It should contain the `docker-compose.yml`, versions and especially the `firefly_db.sql` file. In order to verify everything went correctly, try to restore the backup immediately after the backup ran:
 
 ```shell
-./firefly-iii-backuper.sh restore 2024-08-06.tar
+bash firefly-iii-backuper.sh restore 2024-08-06.tar
 ```
 
 It should print something like this:
@@ -197,5 +197,55 @@ openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:firef
 # decrypt
 openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in 2024-08-06.tar.openssl -out 2024-08-06-decrypted.tar
 ```
+
+This will produce an encrypted `2024-08-06.tar.openssl`, which we can now sync with cron to our Google Drive.
+
+
+### Sync encrypted tar to Google Drive with cron
+
+[As the docs state we can now use a cron job](https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/#automated-backup-using-a-bash-script-and-crontab).
+
+Now to create a cron job to run daily, [simply create a file `fireflybackup.sh` at `/etc/cron.daily`](https://askubuntu.com/a/2369/451114) with the following contents:
+
+```shell
+#!/usr/bin/env bash
+set -euo pipefail
+
+echo "### This backups Firefly III database and settings to GDrive"
+
+echo "##### Create backup as .tar"
+bash $HOME/firefly/firefly-iii-backuper.sh backup $HOME/firefly/$(date '+%F').tar
+
+echo "##### Encrypt .tar using openssl"
+openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in $HOME/firefly/$(date '+%F').tar -out $HOME/firefly/$(date '+%F').tar.openssl
+
+echo "##### Sync encrypted .tar to Google Drive"
+cp $HOME/firefly/$(date '+%F').tar.openssl "/run/user/1000/gvfs/google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga"
+
+echo "##### Retrieve file from Google Drive again"
+cp "/run/user/1000/gvfs/google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga/$(date '+%F').tar.openssl" $HOME/firefly/$(date '+%F').tar.openssl.drive
+
+echo "##### Decrypt encrypted tar from Google Drive to see it would work for restore"
+openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in $HOME/firefly/$(date '+%F').tar.openssl.drive -out $HOME/firefly/$(date '+%F')-drive-decrypt.tar
+```
+
+Be sure to change your Google Drive folder location from `google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga` to the value of your's (you can retrieve the value of your backup folder in your Google Drive by navigating to the dir inside your GNOME files explorer and click onto the three dots, then on `copy location`). 
+
+
+Be also sure to also make it executable via `chmod +x` - and move the password file also into `/etc/cron.daily`
+
+```shell
+chmod +x /etc/cron.daily/fireflybackup.sh
+sudo mv fireflybackup.txt /etc/cron.daily
+```
+
+Now in order to testdrive our cron job, let's execute it like cron would do:
+
+```shell
+cd /etc/cron.daily
+bash fireflybackup.sh 
+```
+
+The example script also copies the encrypted tar back again from google Drive and decrypts it also again, just to make sure the decryption would also work.
 
 
