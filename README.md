@@ -219,7 +219,9 @@ This will produce an encrypted `2024-08-06.tar.openssl`, which we can now sync w
 
 [As the docs state we can now use a cron job](https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/#automated-backup-using-a-bash-script-and-crontab).
 
-Now to create a cron job to run daily, [simply create a file `fireflybackup.sh` at `/etc/cron.daily`](https://askubuntu.com/a/2369/451114) with the following contents:
+Now to create a cron job to run daily, [simply create a file `fireflybackup` at `/etc/cron.daily`](https://askubuntu.com/a/2369/451114) with the following contents:
+
+> THE FILE SHOULDN'T USE the `.sh` filename ending - [if it does, cron doesn't execute the script!](https://askubuntu.com/a/416479/451114)
 
 ```shell
 #!/usr/bin/env bash
@@ -249,17 +251,58 @@ Be sure to change your Google Drive folder location from `google-drive:host=goog
 Be also sure to also make it executable via `chmod +x` - and move the password file also into `/etc/cron.daily`
 
 ```shell
-chmod +x /etc/cron.daily/fireflybackup.sh
+chmod +x /etc/cron.daily/fireflybackup
 sudo mv fireflybackup.txt /etc/cron.daily
 ```
 
-Now in order to testdrive our cron job, let's execute it like cron would do:
+Now in order [to testdrive our cron job](https://askubuntu.com/a/416479/451114), let's execute it like cron would do:
 
 ```shell
 cd /etc/cron.daily
-bash fireflybackup.sh 
+run-parts --verbose /etc/cron.daily
 ```
 
 The example script also copies the encrypted tar back again from google Drive and decrypts it also again, just to make sure the decryption would also work.
 
+
+#### cp: cannot stat '/run/user/1000/gvfs/google-drive Permission denied with root
+
+A cron job is executed with the root user, thus it's root trying to access our Google Drive - which leads to the following error:
+
+```shell
+#### Sync encrypted .tar to Google Drive
+cp: cannot stat '/run/user/1000/gvfs/google-drive:host=googlemail.com,user=jonas.hecht/0ACdy8c0ajOxBUk9PVA/1cpLn14MZOCjrsz0yYreYIAYQGhhOYbgr': Permission denied
+run-parts: /etc/cron.daily/fireflybackup exited with return code 1
+```
+
+It [seems to be an issue with in-memory mounts of type fuse.portal](https://unix.stackexchange.com/a/762694/140406), which the GNOME Desktop uses with its online services:
+
+> "Apparently /run/user/<$UID>/gvfs is an addition by the GNOME desktop environment specifically for services associated with running GNOME desktop."
+
+So we need a solution to run our cron job from our user instead of root. As [this answer states we need to switch from using `cron.daily` dir to the crontab](https://serverfault.com/a/352837/326340). Therefore without sudo run:
+
+```shell
+crontab -e
+```
+
+This opens your user's cron tab and the needed format for defined jobs is:
+
+```shell
+minute hour day-of-month month day-of-week command
+```
+
+So in my case this is:
+
+```shell
+1 12 * * * homepike /home/homepike/firefly/fireflybackup
+```
+
+
+## Use systemd Timers instead of cron
+
+The days where cron was the only alternative are long gone. As the Arch wiki states:
+
+> "...here are many cron implementations, but none of them are installed by default as the base system uses systemd/Timers instead."
+
+So the way today is Systemd Timers: https://wiki.archlinux.org/title/Systemd/Timers
 
