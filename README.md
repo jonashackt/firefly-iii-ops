@@ -174,11 +174,11 @@ It should print something like this:
 ```
 
 
-## Automatically Backup to Cloud Provider using cron & Google Drive
+## Automatically encrypted backups to Cloud Provider using openssl, rclone, systemd Timers & Google Drive
 
 Backing up your database is great, but you should also place the backups on another machine to mitigate hardware failure. 
 
-If you want to use your Google Drive, you can use [this description here to connect your Gnome Desktop to your Drive](https://github.com/jonashackt/mac-to-linux/blob/main/README.md#google-drive-desktop-file-sync).
+But right before uploading our backups to a Cloud Provider, we should encrypt them.
 
 
 ### Encrypting the `.tar` with openssl
@@ -215,116 +215,204 @@ openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fi
 This will produce an encrypted `2024-08-06.tar.openssl`, which we can now sync with cron to our Google Drive.
 
 
-### Sync encrypted tar to Google Drive with cron
 
-[As the docs state we can now use a cron job](https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/#automated-backup-using-a-bash-script-and-crontab).
+## Use rclone to sync encrypted tar to Google Drive
 
-Now to create a cron job to run daily, [simply create a file `fireflybackup` at `/etc/cron.daily`](https://askubuntu.com/a/2369/451114) with the following contents:
+If you want to use your Google Drive, you could use [the Gnome Online Service connection described here](https://github.com/jonashackt/mac-to-linux/blob/main/README.md#google-drive-desktop-file-sync). BUT I wouldn't recommend, it wasn't a stable solution for unattendet backups at least for me.
 
-> THE FILE SHOULDN'T USE the `.sh` filename ending - [if it does, cron doesn't execute the script!](https://askubuntu.com/a/416479/451114)
+So I looked for an alternative (I already stumbled upon it, but didn't have the time to look into it): https://github.com/rclone/rclone
+
+First you need to install and configure rclone.
+
+Install on Manjaro via:
+
+```shell
+pamac install rclone
+```
+
+In order to configure Google Drive with rclone, just have a look into the docs: https://rclone.org/drive/
+
+Start with running:
+
+```shell
+rclone config
+```
+
+An interactive config wizard will guide you.
+
+Be sure to create your own OAuth Client ID & key as stated in https://rclone.org/drive/#making-your-own-client-id (which is rather nasty to do and Google also introduced a new verification step, where they really review the application, which can take weeks :( But the good thing is: the OAuth Client ID & Key will work right away)
+
+If everything went correctly, try to list the files in your Drive using the name of your remote:
+
+```shell
+rclone lsd jonasdrive:
+```
+
+Now to copy our encrypted tar via rclone, execute:
+
+```shell
+rclone copy $HOME/firefly/$(date '+%F').tar.openssl jonasdrive:firefly_backup
+```
+
+
+
+### Create backup script to do the encryption and sync with rclone
+
+Before we can think of a scheduled timer to execute our backup, we need something to execute at all. Therefore let's create a small bash script that will do the encryption of our `.tar` file and sync the encrypted tar to Google Drive using rclone:
 
 ```shell
 #!/usr/bin/env bash
 set -euo pipefail
 
 echo "### This backups Firefly III database and settings to GDrive"
+firefly_home=/home/homepike/firefly
 
 echo "##### Create backup as .tar"
-bash $HOME/firefly/firefly-iii-backuper.sh backup $HOME/firefly/$(date '+%F').tar
+bash $firefly_home/firefly-iii-backuper.sh backup $firefly_home/$(date '+%F').tar
 
-echo "##### Encrypt .tar using openssl"
-openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in $HOME/firefly/$(date '+%F').tar -out $HOME/firefly/$(date '+%F').tar.openssl
+echo "##### Encrypt .tar using openssl & remove tar locally"
+openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$(date '+%F').tar -out $firefly_home/$(date '+%F').tar.openssl
+rm $firefly_home/$(date '+%F').tar
 
-echo "##### Sync encrypted .tar to Google Drive"
-cp $HOME/firefly/$(date '+%F').tar.openssl "/run/user/1000/gvfs/google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga"
+echo "##### Sync encrypted .tar to Google Drive with rclone & remove it locally"
+rclone copyto $firefly_home/$(date '+%F').tar.openssl jonasdrive:firefly_backup/$(date '+%F').tar.openssl
+rm $firefly_home/$(date '+%F').tar.openssl
 
-echo "##### Retrieve file from Google Drive again"
-cp "/run/user/1000/gvfs/google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga/$(date '+%F').tar.openssl" $HOME/firefly/$(date '+%F').tar.openssl.drive
+echo "##### Retrieve file from Google Drive with rclone again"
+rclone copyto jonasdrive:firefly_backup/$(date '+%F').tar.openssl $firefly_home/$(date '+%F').tar.openssl.drive
 
-echo "##### Decrypt encrypted tar from Google Drive to see it would work for restore"
-openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:fireflybackup.txt -in $HOME/firefly/$(date '+%F').tar.openssl.drive -out $HOME/firefly/$(date '+%F')-drive-decrypt.tar
+echo "##### Decrypt encrypted tar from Google Drive to see it would work for restore & remove openssl.drive file"
+openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$(date '+%F').tar.openssl.drive -out $firefly_home/$(date '+%F').drive.decrypt.tar
+rm $firefly_home/$(date '+%F').tar.openssl.drive
 ```
 
-Be sure to change your Google Drive folder location from `google-drive:host=googlemail.com,user=your.user/upoeiutpoewutpoewutpoi/öalkjsfölöjah797asggsdga` to the value of your's (you can retrieve the value of your backup folder in your Google Drive by navigating to the dir inside your GNOME files explorer and click onto the three dots, then on `copy location`). 
+The example script also copies the encrypted tar back again from google Drive and decrypts it also again, just to make sure the decryption would also work. It also removes any tmp files used throughout the process and just leaves the final `$firefly_home/$(date '+%F').drive.decrypt.tar` locally for the reference.
 
 
-Be also sure to also make it executable via `chmod +x` - and move the password file also into `/etc/cron.daily`
-
-```shell
-chmod +x /etc/cron.daily/fireflybackup
-sudo mv fireflybackup.txt /etc/cron.daily
-```
-
-Now in order [to testdrive our cron job](https://askubuntu.com/a/416479/451114), let's execute it like cron would do:
-
-```shell
-cd /etc/cron.daily
-run-parts --verbose /etc/cron.daily
-```
-
-The example script also copies the encrypted tar back again from google Drive and decrypts it also again, just to make sure the decryption would also work.
-
-
-#### cp: cannot stat '/run/user/1000/gvfs/google-drive Permission denied with root
-
-A cron job is executed with the root user, thus it's root trying to access our Google Drive - which leads to the following error:
-
-```shell
-#### Sync encrypted .tar to Google Drive
-cp: cannot stat '/run/user/1000/gvfs/google-drive:host=googlemail.com,user=jonas.hecht/0ACdy8c0ajOxBUk9PVA/1cpLn14MZOCjrsz0yYreYIAYQGhhOYbgr': Permission denied
-run-parts: /etc/cron.daily/fireflybackup exited with return code 1
-```
-
-It [seems to be an issue with in-memory mounts of type fuse.portal](https://unix.stackexchange.com/a/762694/140406), which the GNOME Desktop uses with its online services:
-
-> "Apparently /run/user/<$UID>/gvfs is an addition by the GNOME desktop environment specifically for services associated with running GNOME desktop."
-
-So we need a solution to run our cron job from our user instead of root. As [this answer states we need to switch from using `cron.daily` dir to the crontab](https://serverfault.com/a/352837/326340). Therefore without sudo run:
-
-```shell
-crontab -e
-```
-
-This opens your user's cron tab and the needed format for defined jobs is:
-
-```shell
-minute hour day-of-month month day-of-week command
-```
-
-So in my case this is:
-
-```shell
-1 12 * * * homepike /home/homepike/firefly/fireflybackup
-```
 
 
 ## Use systemd Timers instead of cron
 
-The days where cron was the only alternative are long gone. As the Arch wiki states:
+[As the docs state we can use a cron job](https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/#automated-backup-using-a-bash-script-and-crontab).
+
+But the days where cron was the only alternative are long gone. As the Arch wiki states:
 
 > "...here are many cron implementations, but none of them are installed by default as the base system uses systemd/Timers instead."
 
-But we might also get into other problems using systemd Timers at the end. Why not look for a general purpose Cloud Storage Syncing solution?
+See [the benefits section of the Arch wiki](https://wiki.archlinux.org/title/Systemd/Timers#As_a_cron_replacement) also.
 
+So the way to "use cron" today is Systemd Timers: https://wiki.archlinux.org/title/Systemd/Timers
 
-## Using rclone
-
-I already stumbled upon it, but didn't have the time to look into it. But it might be THE tool for the job https://github.com/rclone/rclone
-
-Let's try it out. Install on Manjaro via:
+To list all started timers run the following:
 
 ```shell
-pamac install rclone
+systemctl list-timers
 ```
 
-Directly afterwards we can configure it with:
+See also https://blog.jlcarveth.dev/systemd_timers & https://documentation.suse.com/sle-micro/6.0/html/Micro-systemd-working-with-timers/index.html
+
+In order to create our own systemd based Timer to run our backup, we need 2 additional files:
 
 ```shell
-rclone config
+fireflybackup.service   - the service that will run the backup script
+fireflybackup.timer     - the timer that activates and controls our service
+fireflybackup.sh        - our backup script
 ```
 
-In order to configure Google Drive with rclone, just have a look into the docs: https://rclone.org/drive/
+### Create `fireflybackup.service`
 
+Let's first create our `fireflybackup.service` file in `/etc/systemd/system`:
 
-So the way today is Systemd Timers: https://wiki.archlinux.org/title/Systemd/Timers
+```shell
+[Unit]
+Description=Service for Firefly III Backup to Google Drive
+Wants=fireflybackup.timer
 
+[Service]
+Type=oneshot
+ExecStart=/home/homepike/firefly/fireflybackup.sh
+User=homepike
+Group=homepike
+
+[Install]
+WantedBy=timers.target
+```
+
+> For more information about systemd service files, have a look at https://www.digitalocean.com/community/tutorials/understanding-systemd-units-and-unit-files
+
+As you may see, I added the `User=` and `Group=` configuration in the `[Service]` section [to have systemd execute my backup script as a user](https://serverfault.com/questions/957323/systemd-start-as-unprivileged-user-in-a-group), that is registered to access rclone or the Gnome Google Drive integration.
+
+Check if your service configuration is correct by running:
+
+```shell
+systemd-analyze verify /etc/systemd/system/fireflybackup.*
+```
+
+We can now already test drive our systemd powered backup (without the timer) by running:
+
+```shell
+sudo systemctl start fireflybackup.service
+```
+
+This should already reveal the power of systemd, where we can use the `status` command to look for the actual status of our backup service:
+
+```shell
+$ sudo systemctl start fireflybackup.service 
+Warning: The unit file, source configuration file or drop-ins of fireflybackup.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+
+$ systemctl status fireflybackup.service
+Warning: The unit file, source configuration file or drop-ins of fireflybackup.service changed on disk. Run 'systemctl daemon-reload' to reload units.
+○ fireflybackup.service - Service for Firefly III Backup to Google Drive
+     Loaded: loaded (/etc/systemd/system/fireflybackup.service; disabled; preset: disabled)
+     Active: inactive (dead)
+
+Aug 07 15:25:07 pikeserver fireflybackup.sh[433709]: the input device is not a TTY
+Aug 07 15:25:07 pikeserver fireflybackup.sh[433642]: [INFO]  Backing up App & database version numbers.
+Aug 07 15:25:07 pikeserver fireflybackup.sh[433642]: [INFO]  Backing up database
+Aug 07 15:25:07 pikeserver fireflybackup.sh[433642]: [INFO]  Backing up upload volume
+Aug 07 15:25:08 pikeserver fireflybackup.sh[433640]: ##### Encrypt .tar using openssl
+Aug 07 15:25:09 pikeserver fireflybackup.sh[433640]: ##### Sync encrypted .tar to Google Drive
+Aug 07 15:25:09 pikeserver fireflybackup.sh[433640]: ##### Retrieve file from Google Drive again
+Aug 07 15:25:12 pikeserver fireflybackup.sh[433640]: ##### Decrypt encrypted tar from Google Drive to see it would work for restore
+Aug 07 15:25:13 pikeserver systemd[1]: fireflybackup.service: Deactivated successfully.
+Aug 07 15:25:13 pikeserver systemd[1]: Finished Service for Firefly III Backup to Google Drive.
+```
+
+### Create `fireflybackup.timer`
+
+Now that we have the service defined, let's define our `fireflybackup.timer` also in `/etc/systemd/system/`:
+
+```shell
+[Unit]
+Description=Timer unit for fireflybackup.service
+Requires=fireflybackup.service
+
+[Timer]
+Unit=fireflybackup.service
+OnCalendar=daily
+
+[Install]
+WantedBy=timers.target
+```
+
+> To configure the `OnCalender` to your time needed, there's also a handy command `systemd-analyze calendar weekly`, `systemd-analyze calendar minutely` etc. See https://wiki.archlinux.org/title/Systemd/Timers#Realtime_timer for more info
+
+Check if your timer configuration is correct by running:
+
+```shell
+systemd-analyze verify /etc/systemd/system/fireflybackup.*
+```
+
+If that brings no errors, let's start our timer (as we're already used to from systemd services):
+
+```shell
+sudo systemctl start fireflybackup.timer
+```
+
+You can now check your Google Drive if the encrypted tar was synced correctly.
+
+Since we want to enable our backup to really run regardless of reboots, enable the service as follows:
+
+```shell
+sudo systemctl enable fireflybackup.timer
+```
