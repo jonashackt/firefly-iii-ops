@@ -266,24 +266,26 @@ set -euo pipefail
 
 echo "### This backups Firefly III database and settings to GDrive"
 firefly_home=/home/homepike/firefly
+date_hour_min=$(date '+%F-%H-%M')
 
 echo "##### Create backup as .tar"
-bash $firefly_home/firefly-iii-backuper.sh backup $firefly_home/$(date '+%F').tar
+bash $firefly_home/firefly-iii-backuper.sh backup $firefly_home/$date_hour_min.tar
 
 echo "##### Encrypt .tar using openssl & remove tar locally"
-openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$(date '+%F').tar -out $firefly_home/$(date '+%F').tar.openssl
-rm $firefly_home/$(date '+%F').tar
+openssl enc -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$date_hour_min.tar -out $firefly_home/$date_hour_min.tar.openssl
+rm $firefly_home/$date_hour_min.tar
 
 echo "##### Sync encrypted .tar to Google Drive with rclone & remove it locally"
-rclone copyto $firefly_home/$(date '+%F').tar.openssl jonasdrive:firefly_backup/$(date '+%F').tar.openssl
-rm $firefly_home/$(date '+%F').tar.openssl
+rclone copyto $firefly_home/$date_hour_min.tar.openssl jonasdrive:firefly_backup/$date_hour_min.tar.openssl
+rm $firefly_home/$date_hour_min.tar.openssl
 
 echo "##### Retrieve file from Google Drive with rclone again"
-rclone copyto jonasdrive:firefly_backup/$(date '+%F').tar.openssl $firefly_home/$(date '+%F').tar.openssl.drive
+rclone copyto jonasdrive:firefly_backup/$date_hour_min.tar.openssl $firefly_home/$date_hour_min.tar.openssl.drive
 
 echo "##### Decrypt encrypted tar from Google Drive to see it would work for restore & remove openssl.drive file"
-openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$(date '+%F').tar.openssl.drive -out $firefly_home/$(date '+%F').drive.decrypt.tar
-rm $firefly_home/$(date '+%F').tar.openssl.drive
+openssl enc -d -aes-256-cbc -md sha512 -pbkdf2 -iter 1000000 -salt -pass file:$firefly_home/fireflybackup.txt -in $firefly_home/$date_hour_min.tar.openssl.drive -out $firefly_home/$date_hour_min.drive.decrypt.tar
+rm $firefly_home/$date_hour_min.tar.openssl.drive
+
 ```
 
 The example script also copies the encrypted tar back again from google Drive and decrypts it also again, just to make sure the decryption would also work. It also removes any tmp files used throughout the process and just leaves the final `$firefly_home/$(date '+%F').drive.decrypt.tar` locally for the reference.
