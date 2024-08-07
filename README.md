@@ -304,5 +304,27 @@ The days where cron was the only alternative are long gone. As the Arch wiki sta
 
 > "...here are many cron implementations, but none of them are installed by default as the base system uses systemd/Timers instead."
 
+But we might also get into other problems using systemd Timers at the end. Why not look for a general purpose Cloud Storage Syncing solution?
+
+
+## Using rclone
+
+I already stumbled upon it, but didn't have the time to look into it. But it might be THE tool for the job https://github.com/rclone/rclone
+
+Let's try it out. Install on Manjaro via:
+
+```shell
+pamac install rclone
+```
+
+Directly afterwards we can configure it with:
+
+```shell
+rclone config
+```
+
+In order to configure Google Drive with rclone, just have a look into the docs: https://rclone.org/drive/
+
+
 So the way today is Systemd Timers: https://wiki.archlinux.org/title/Systemd/Timers
 
