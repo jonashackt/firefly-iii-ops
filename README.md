@@ -391,11 +391,14 @@ Requires=fireflybackup.service
 
 [Timer]
 Unit=fireflybackup.service
-OnCalendar=daily
+OnCalendar=*-*-* 10:00:00
+OnBootSec=5min
 
 [Install]
 WantedBy=timers.target
 ```
+
+I wanted my backup to run every day at 10am and 5min after boot (if I would boot :D ).
 
 > To configure the `OnCalender` to your time needed, there's also a handy command `systemd-analyze calendar weekly`, `systemd-analyze calendar minutely` etc. See https://wiki.archlinux.org/title/Systemd/Timers#Realtime_timer for more info
 
