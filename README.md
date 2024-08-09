@@ -129,6 +129,24 @@ You need to reauthenticate via `Sign in with other` and not with the button `sig
 
 
 
+# Firefly recurring jobs with cron in Docker
+
+If you visit the Standing Order page in Automation the first time, you might notice a blue message on the top stating that your cron job hasn't been running.
+
+Having leveraged the Docker Compose setup, activating cron in Firefly is easy. Since a cron container is already present in the `docker-compose.yml`. But you need to alter it and add the command line token shown in the `Profile` section of the `Settings` page in Firefly III. For more info have a look into the docs https://docs.firefly-iii.org/how-to/firefly-iii/advanced/cron/#docker-compose
+
+Simply add your token in the cron container command instead of `REPLACEME`. After that you need to restart your Docker Compose stack via:
+
+```shell
+docker compose -f docker-compose.yml up -d --pull=always
+```
+
+> WARNING: A `docker compose restart` command isn't enough to change the container command! To this to work, [it needs a container rebuild. Which only works with a `docker compose up`.](https://www.reddit.com/r/docker/comments/sxz70d/comment/hxv1c9y/?utm_source=share&utm_medium=web3x&utm_name=web3xcss&utm_term=1&utm_content=share_button)  
+
+In your `docker-compose.yml` you can also configure the time you want the firefly cron job to run. I wanted to change the default to everyday at 7am - so I configured `sh -c "echo \"0 7 * * * wget -qO- http://...`. See https://crontab.guru/#0_7_*_*_* for other options.
+
+
+
 # Backup Firefly III
 
 https://docs.firefly-iii.org/how-to/firefly-iii/advanced/backup/ & https://github.com/firefly-iii/firefly-iii/issues/4270
