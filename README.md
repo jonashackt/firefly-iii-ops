@@ -107,6 +107,7 @@ sudo tailscale up
 
 Now use the link to authenticate your machine to your tailnet. That's it.
 
+> You can also omit the default `key expiry` feature in tailscale, if you only connect trusted devices and don't want the connections to expire after 180 days. [See the docs](https://tailscale.com/kb/1028/key-expiry#disabling-key-expiry), you can disable it simply at the machines admin console at every single device: https://login.tailscale.com/admin/machines
 
 ### Connect your (mobile) devices
 
