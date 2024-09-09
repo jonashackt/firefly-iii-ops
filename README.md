@@ -28,6 +28,16 @@ docker compose -f docker-compose.yml up -d --pull=always
 Now access firefly iii on http://localhost
 
 
+# Update Firefly III with Docker
+
+Super easy, see https://docs.firefly-iii.org/how-to/firefly-iii/upgrade/docker/
+
+Just run:
+
+```shell
+docker compose -f docker-compose.yml up -d --pull=always
+```
+
 
 ## Open port on your server
 
