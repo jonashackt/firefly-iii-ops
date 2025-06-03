@@ -78,7 +78,7 @@ Especially the Abacus App https://github.com/victorbalssa/abacus (available for 
 Download the App from your Appstore and configure your local network's firefly url. Then log in using OAuth client token, provided by firefly at http://localhost:4000/profile
 
 
-## Make your homeserver available on the internet (for later app access)
+## Tailscale: Make your homeserver available on the internet (for later app access)
 
 There are multiple possibilities to make your homeserver accessible on the internet. See [this subreddit](https://www.reddit.com/r/synology/comments/otczia/is_there_an_actual_safe_way_to_access_my_nas_from/) for example.
 
@@ -134,9 +134,38 @@ If it's your wife, you might just want here to join your tailnet anyways. If it'
 
 To do the first, head over to https://login.tailscale.com/admin/users and click on `Invite external users` in the Invite users tab. Now share the link using mail or the link directly.
 
-#### When your wife can't see your devices (only her's)
 
-You need to reauthenticate via `Sign in with other` and not with the button `sign in with google`, but using your wife'S google adress. See https://www.reddit.com/r/Tailscale/comments/15iornp/comment/k4terws/
+### Tailscale magic dns sometimes not working (resolving): Using systemd-resolved
+
+I experienced random times, where the tailscale magic DNS aren't working as they should - this is [a documented issue with DNS and Tailscale on Linux systems](https://tailscale.com/kb/1188/linux-dns).
+
+The solution is to use systemd-resolved & NetworkManager and a specific symlink, which tells NetworkManager to use systemd-resolved instead of overriding `/etc/resolv.conf`.
+
+The problem with Manjaro here: As per default, `systemd-resolved` is unused on Manjaro (it's service is still installed, but disabled) -[ but instead, `openresolv` is used](https://forum.manjaro.org/t/secure-conections-and-systemd-resolved/157998/4).
+
+As [a Manjaro maintainer stated](https://forum.manjaro.org/t/secure-conections-and-systemd-resolved/157998/6):
+
+> In any case - using systemd-resolved is the better option. One reason is the increased everyday use of VPN where using systemd-resolved solves a common issue where the resolv.conf is not reset correct when you disconnect your VPN.
+
+> [The problem is the same with NordVPN on Manjaro](https://forum.manjaro.org/t/root-tip-how-to-nordvpn-on-manjaro/81016)
+
+I don't really get, why the Manjaro maintainer themselves say, systemd-resolved is the better option, but still provide openresolv but anyway. We want to solve the issue!
+
+[The solution](https://tailscale.com/kb/1188/linux-dns) is to backup the `resolve.conf`, enable `systemd-resolved` to take over the DNS game on Manjaro, uninstall `openresolv`, create the symlink for NetworkManager and restart all services:
+
+```shell
+# backup the `resolve.conf`
+sudo mv /etc/resolv.conf /etc/resolv.conf.bak
+# enable `systemd-resolved` to take over the DNS game on Manjaro
+sudo systemctl enable systemd-resolved --now
+# uninstall `openresolv`
+sudo pamac uninstall openresolv
+# make symlink for NetworkManager which then uses systemd-resolved and doesn't take over the resolv.conf file
+sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
+sudo systemctl restart systemd-resolved
+sudo systemctl restart NetworkManager
+sudo systemctl restart tailscaled
+``` 
 
 
 
