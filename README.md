@@ -139,6 +139,8 @@ To do the first, head over to https://login.tailscale.com/admin/users and click 
 
 I experienced random times, where the tailscale magic DNS aren't working as they should - this is [a documented issue with DNS and Tailscale on Linux systems](https://tailscale.com/kb/1188/linux-dns).
 
+> There's a full summary article about this here https://tailscale.com/blog/sisyphean-dns-client-linux
+
 The solution is to use systemd-resolved & NetworkManager and a specific symlink, which tells NetworkManager to use systemd-resolved instead of overriding `/etc/resolv.conf`.
 
 The problem with Manjaro here: As per default, `systemd-resolved` is unused on Manjaro (it's service is still installed, but disabled) -[ but instead, `openresolv` is used](https://forum.manjaro.org/t/secure-conections-and-systemd-resolved/157998/4).
@@ -151,7 +153,7 @@ As [a Manjaro maintainer stated](https://forum.manjaro.org/t/secure-conections-a
 
 I don't really get, why the Manjaro maintainer themselves say, systemd-resolved is the better option, but still provide openresolv but anyway. We want to solve the issue!
 
-[The solution](https://tailscale.com/kb/1188/linux-dns) is to backup the `resolve.conf`, enable `systemd-resolved` to take over the DNS game on Manjaro, uninstall `openresolv`, create the symlink for NetworkManager and restart all services:
+[The solution](https://tailscale.com/kb/1188/linux-dns) is to backup the `resolve.conf`, enable `systemd-resolved` to take over the DNS game on Manjaro, uninstall `openresolv` & create the symlink for NetworkManager:
 
 ```shell
 # backup the `resolve.conf`
@@ -159,13 +161,15 @@ sudo mv /etc/resolv.conf /etc/resolv.conf.bak
 # enable `systemd-resolved` to take over the DNS game on Manjaro
 sudo systemctl enable systemd-resolved --now
 # uninstall `openresolv`
-sudo pamac uninstall openresolv
+pamac remove openresolv
 # make symlink for NetworkManager which then uses systemd-resolved and doesn't take over the resolv.conf file
 sudo ln -sf /run/systemd/resolve/stub-resolv.conf /etc/resolv.conf
-sudo systemctl restart systemd-resolved
-sudo systemctl restart NetworkManager
-sudo systemctl restart tailscaled
 ``` 
+
+After manually restarting all services as described in the tailscale docs (via `sudo systemctl restart systemd-resolved` etc), tailscale was still complaining about the Linux DNS configuration not beeing ok (and NetworkManager and systemd-resolved not beeing wired together correctly). But this problem was solved making a full system restart. Now `tailscale status` does not complain anymore!
+
+
+
 
 
 
